@@ -1,0 +1,15 @@
+spring:
+  cloud:
+    stream:
+      default-binder: rabbit
+      bindings:
+        sendMessage-out-0:
+          destination: my-queue
+          content-type: application/json
+      rabbit:
+        bindings:
+          sendMessage-out-0:
+            producer:
+              routingKey: my-queue
+server:
+  port: 1212
