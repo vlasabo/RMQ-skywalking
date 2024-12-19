@@ -1,0 +1,102 @@
+version: "3.9"
+services:
+
+  postgres:
+    image: postgres:15
+    container_name: postgres-db
+    environment:
+      POSTGRES_DB: mydb
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  skywalking:
+    image: apache/skywalking-oap-server:9.1.0
+    environment:
+      - SW_STORAGE=elasticsearch
+      - SW_STORAGE_ES_CLUSTER_NODES=elasticsearch:9200
+    ports:
+      - "11800:11800" # Порт для агентов
+      - "12800:12800" # Порт для UI
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:12800/ || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: always
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  skywalking-ui:
+    image: apache/skywalking-ui:9.1.0
+    environment:
+      - SW_OAP_ADDRESS=http://skywalking:12800
+    ports:
+      - "8080:8080"
+    depends_on:
+      - skywalking
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.10
+    environment:
+      - discovery.type=single-node
+    ports:
+      - "9200:9200"
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -s http://localhost:9200 | grep 'You Know, for Search'" ] #ищет в ответе tagline
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.11-management
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - "5672:5672" # AMQP
+      - "15672:15672" # Management UI
+
+  producer:
+    build:
+      context: ../RMQ-skywalking
+      dockerfile: producer/Dockerfile
+    environment:
+      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking-agent/skywalking-agent.jar
+      - SW_AGENT_NAME=producer-service
+      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking:11800
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+    ports:
+      - "1212:1212"
+    depends_on:
+      - rabbitmq
+      - skywalking
+    volumes:
+      - ./skywalking-agent:/skywalking-agent
+
+  consumer:
+    build:
+      context: ../RMQ-skywalking
+      dockerfile: consumer/Dockerfile
+    environment:
+      - JAVA_TOOL_OPTIONS=-javaagent:/skywalking-agent/skywalking-agent.jar
+      - SW_AGENT_NAME=consumer-service
+      - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking:11800
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+    ports:
+      - "8081:8081"
+    depends_on:
+      - rabbitmq
+      - skywalking
+      - postgres
+    volumes:
+      - ./skywalking-agent:/skywalking-agent
+
+volumes:
+  postgres-data:
