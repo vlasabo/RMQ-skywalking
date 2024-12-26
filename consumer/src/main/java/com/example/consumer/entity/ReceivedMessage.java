@@ -1,8 +1,8 @@
 package com.example.consumer.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
+import org.apache.skywalking.apm.toolkit.trace.TraceContext;
 
 import java.time.LocalDateTime;
 
@@ -14,6 +14,10 @@ import java.time.LocalDateTime;
 @Table(name = "received_message")
 @Getter
 @Setter
+@ToString
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ReceivedMessage {
 
     @Id
@@ -26,8 +30,12 @@ public class ReceivedMessage {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(nullable = false, length = 1024)
+    private String sw8Field;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
+        this.sw8Field = TraceContext.traceId();
     }
 }

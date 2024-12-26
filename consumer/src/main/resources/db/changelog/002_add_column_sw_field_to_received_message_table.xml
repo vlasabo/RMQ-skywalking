@@ -5,6 +5,10 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
-    <include file="db/changelog/001_create_table_received_message.xml"/>
-    <include file="db/changelog/002_add_column_sw_field_to_received_message_table.xml"/>
+    <changeSet id="002_add_column_sw_field_to_received_message_table" author="vvsabo">
+        <addColumn tableName="received_message">
+            <column name="sw8field" type="VARCHAR(1024)">
+            </column>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

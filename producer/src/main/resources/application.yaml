@@ -11,5 +11,16 @@ spring:
           sendMessage-out-0:
             producer:
               routingKey: my-queue
+
+consumer-service:
+  url: http://consumer:8081
+
 server:
   port: 1212
+
+logging:
+  level:
+    root: DEBUG
+    org.apache.skywalking: INFO
+    org.springframework: INFO
+    org.springframework.cloud.stream.binder: INFO

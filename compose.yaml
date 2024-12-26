@@ -22,7 +22,7 @@ services:
       - "11800:11800" # Порт для агентов
       - "12800:12800" # Порт для UI
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:12800/ || exit 1" ]
+      test: ["CMD-SHELL", "curl -s -f http://localhost:12800/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -66,16 +66,19 @@ services:
       context: ../RMQ-skywalking
       dockerfile: producer/Dockerfile
     environment:
+      - SERVICE_INSTANCE_ID=producer-instance
       - JAVA_TOOL_OPTIONS=-javaagent:/skywalking-agent/skywalking-agent.jar
       - SW_AGENT_NAME=producer-service
       - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking:11800
       - SPRING_RABBITMQ_HOST=rabbitmq
       - SPRING_RABBITMQ_PORT=5672
+      - STARTUP_DELAY=30
     ports:
       - "1212:1212"
     depends_on:
       - rabbitmq
       - skywalking
+      - postgres
     volumes:
       - ./skywalking-agent:/skywalking-agent
 
@@ -89,6 +92,7 @@ services:
       - SW_AGENT_COLLECTOR_BACKEND_SERVICES=skywalking:11800
       - SPRING_RABBITMQ_HOST=rabbitmq
       - SPRING_RABBITMQ_PORT=5672
+      - STARTUP_DELAY=30
     ports:
       - "8081:8081"
     depends_on:

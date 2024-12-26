@@ -1,4 +1,4 @@
-package com.example.consumer.configureation;
+package com.example.consumer.configuration;
 
 import com.example.consumer.service.ConsumerService;
 import lombok.RequiredArgsConstructor;
