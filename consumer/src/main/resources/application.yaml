@@ -14,24 +14,14 @@ spring:
   liquibase:
     change-log: classpath:db/changelog/changelog-master.xml
 
-  cloud:
-    stream:
-      default-binder: rabbit
-      bindings:
-        receiveMessage-in-0:
-          destination: my-queue
-          group: my-group
-          content-type: application/json
-          consumer:
-            header-mode: headers
-      binders:
-        rabbit:
-          type: rabbit
-          environment:
-            host: rabbitmq
-            port: 5672
-            username: guest
-            password: guest
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    username: guest
+    password: guest
+    listener:
+      simple:
+        acknowledge-mode: manual
 
 producer-service:
   url: http://producer:1212

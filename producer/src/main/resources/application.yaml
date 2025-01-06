@@ -1,16 +1,9 @@
 spring:
-  cloud:
-    stream:
-      default-binder: rabbit
-      bindings:
-        sendMessage-out-0:
-          destination: my-queue
-          content-type: application/json
-      rabbit:
-        bindings:
-          sendMessage-out-0:
-            producer:
-              routingKey: my-queue
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    username: guest
+    password: guest
 
 consumer-service:
   url: http://consumer:8081

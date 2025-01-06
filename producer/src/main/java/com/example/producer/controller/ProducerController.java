@@ -6,15 +6,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.skywalking.apm.toolkit.trace.Trace;
 import org.apache.skywalking.apm.toolkit.trace.TraceContext;
-import org.springframework.cloud.stream.function.StreamBridge;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.Message;
-import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Base64;
 import java.util.Collections;
-
 
 /**
  * Created by vladimirsabo on 18.12.2024
@@ -24,9 +21,9 @@ import java.util.Collections;
 @Slf4j
 @RequiredArgsConstructor
 public class ProducerController {
-    private final StreamBridge streamBridge;
-    private final ConsumerClient consumerClient;
 
+    private final RabbitTemplate rabbitTemplate;
+    private final ConsumerClient consumerClient;
 
     @PostMapping("/send")
     @Trace
@@ -37,22 +34,26 @@ public class ProducerController {
         // Формируем sw8-заголовок вручную
 //        var sw8Header = String.format(
 //                "1-%s-%s-%d-%s-%s-%s-%s",
-//                base64Encode(TraceContext.traceId()),                // traceId
-//                base64Encode(TraceContext.segmentId()),              // segmentId
-//                TraceContext.spanId(),                               // spanId
-//                base64Encode("producer-service"),              // parentService
-//                base64Encode("producer-instance"),             // parentServiceInstance
-//                base64Encode("sendMessage"),                   // endpoint
-//                base64Encode("rabbitmq://my-queue")            // networkAddress
+//                base64Encode(TraceContext.traceId()),           // traceId
+//                base64Encode(TraceContext.segmentId()),         // segmentId
+//                TraceContext.spanId(),                          // spanId
+//                base64Encode("producer-service"),               // parentService
+//                base64Encode("producer-instance"),              // parentServiceInstance
+//                base64Encode("/api/producer/send"),             // endpoint
+//                base64Encode("rabbitmq://my-queue")             // networkAddress
 //        );
-//        TraceContext.putCorrelation("sw8", sw8Header);
-        Message<String> queueMessage = MessageBuilder
-                .withPayload(message)
-//                .setHeader("sw8", sw8Header)
-                .build();
-        log.info("all headers before send = [{}]", queueMessage.getHeaders());
-        streamBridge.send("sendMessage-out-0", queueMessage);
-        log.info("all headers after send = [{}]", queueMessage.getHeaders());
+
+        // Отправляем сообщение в RabbitMQ с заголовком sw8
+        rabbitTemplate.convertAndSend("my-exchange",
+                "my-routing-key",
+                message
+                , msg -> {
+//            msg.getMessageProperties().setHeader("sw8", sw8Header);
+                    return msg;
+                }
+        );
+
+//      log.info("Message sent successfully with sw8Header: [{}]", sw8Header);
         return ResponseEntity.ok("Message sent: " + message);
     }
 
@@ -63,8 +64,8 @@ public class ProducerController {
         log.info("check...");
         Collections.list(request.getHeaderNames())
                 .forEach(headerName -> log.info("Header: {} = {}", headerName, request.getHeader(headerName)));
-        consumerClient.check(checkParam);
-        return ResponseEntity.ok("checked param: " + checkParam);
+        String result = consumerClient.check(checkParam);
+        return ResponseEntity.ok("Checked param: " + result);
     }
 
     private String base64Encode(String value) {
